@@ -1,1 +1,163 @@
+networks:
+  novasoft_net:
+    driver: bridge
+
+volumes:
+  gitlab_config:
+  gitlab_logs:
+  gitlab_data:
+  mattermost_data:
+  mattermost_logs:
+  mattermost_plugins:
+  nextcloud_data:
+  nextcloud_db:
+  woodpecker_data:
+
+services:
+
+
+  gitlab:
+    image: gitlab/gitlab-ce:latest
+    container_name: novasoft_gitlab
+    restart: unless-stopped
+    hostname: localhost
+    environment:
+      GITLAB_OMNIBUS_CONFIG: |
+        external_url 'http://localhost:8080'
+        gitlab_rails['gitlab_shell_ssh_port'] = 2222
+        # Reducir uso de memoria para entorno de desarrollo
+        unicorn['worker_processes'] = 2
+        sidekiq['concurrency'] = 5
+        prometheus_monitoring['enable'] = false
+    ports:
+      - "8080:80"
+      - "2222:22"
+    volumes:
+      - gitlab_config:/etc/gitlab
+      - gitlab_logs:/var/log/gitlab
+      - gitlab_data:/var/opt/gitlab
+    networks:
+      - novasoft_net
+    shm_size: "256m"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/-/health"]
+      interval: 60s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+
+  mattermost:
+    image: mattermost/mattermost-team-edition:latest
+    container_name: novasoft_mattermost
+    restart: unless-stopped
+    depends_on:
+      - mattermost_db
+    environment:
+      MM_SQLSETTINGS_DRIVERNAME: postgres
+      MM_SQLSETTINGS_DATASOURCE: postgres://mattermost:mattermost_pass@mattermost_db:5432/mattermost?sslmode=disable
+      MM_SERVICESETTINGS_SITEURL: http://localhost:8065
+    ports:
+      - "8065:8065"
+    volumes:
+      - mattermost_data:/mattermost/data
+      - mattermost_logs:/mattermost/logs
+      - mattermost_plugins:/mattermost/plugins
+    networks:
+      - novasoft_net
+
+  mattermost_db:
+    image: postgres:15-alpine
+    container_name: novasoft_mattermost_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: mattermost
+      POSTGRES_PASSWORD: mattermost_pass
+      POSTGRES_DB: mattermost
+    networks:
+      - novasoft_net
+
+  nextcloud_db:
+    image: mariadb:10.11
+    container_name: novasoft_nextcloud_db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: nextcloud_root_pass
+      MYSQL_DATABASE: nextcloud
+      MYSQL_USER: nextcloud
+      MYSQL_PASSWORD: nextcloud_pass
+    volumes:
+      - nextcloud_db:/var/lib/mysql
+    networks:
+      - novasoft_net
+
+  nextcloud:
+    image: nextcloud:28-apache
+    container_name: novasoft_nextcloud
+    restart: unless-stopped
+    depends_on:
+      - nextcloud_db
+    environment:
+      MYSQL_HOST: nextcloud_db
+      MYSQL_DATABASE: nextcloud
+      MYSQL_USER: nextcloud
+      MYSQL_PASSWORD: nextcloud_pass
+      NEXTCLOUD_ADMIN_USER: admin
+      NEXTCLOUD_ADMIN_PASSWORD: admin_novasoft_2025
+      NEXTCLOUD_TRUSTED_DOMAINS: localhost
+    ports:
+      - "8090:80"
+    volumes:
+      - nextcloud_data:/var/www/html
+    networks:
+      - novasoft_net
+
+  collabora:
+    image: collabora/code:latest
+    container_name: novasoft_collabora
+    restart: unless-stopped
+    environment:
+      - aliasgroup1=http://nextcloud:80
+      - DONT_GEN_SSL_CERT=YES
+      - dictionaries=es_MX en_US
+    cap_add:
+      - MKNOD
+    ports:
+      - "9980:9980"
+    networks:
+      - novasoft_net
+  woodpecker_server:
+    image: woodpeckerci/woodpecker-server:latest
+    container_name: novasoft_woodpecker
+    restart: unless-stopped
+    depends_on:
+      - gitlab
+    environment:
+  
+      WOODPECKER_GITLAB: "true"
+      WOODPECKER_GITLAB_URL: http://gitlab:80
+      WOODPECKER_GITLAB_CLIENT: "REEMPLAZAR_CON_GITLAB_APP_ID"
+      WOODPECKER_GITLAB_SECRET: "REEMPLAZAR_CON_GITLAB_APP_SECRET"
+      WOODPECKER_AGENT_SECRET: woodpecker_agent_secret_2025
+      WOODPECKER_HOST: http://localhost:8000
+    ports:
+      - "8000:8000"
+    volumes:
+      - woodpecker_data:/var/lib/woodpecker
+    networks:
+      - novasoft_net
+
+  woodpecker_agent:
+    image: woodpeckerci/woodpecker-agent:latest
+    container_name: novasoft_woodpecker_agent
+    restart: unless-stopped
+    depends_on:
+      - woodpecker_server
+    environment:
+      WOODPECKER_SERVER: woodpecker_server:9000
+      WOODPECKER_AGENT_SECRET: woodpecker_agent_secret_2025
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - novasoft_net
 
