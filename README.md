@@ -25,8 +25,7 @@ NonaSoft es una startup tecnológica mexicana de 100 colaboradores, especializad
 │   ├── gestion_documental.md         
 │   └── infraestructura_cicd.md       
 ├── propuesta/
-│   ├── ecosistema.mmd                
-│   └── ecosistema_descripcion.md      
+│   ├── ecosistema.mmd                   
 └── docker-compose.yml                
 ```
 
