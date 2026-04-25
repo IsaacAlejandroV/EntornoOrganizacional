@@ -1,28 +1,14 @@
 graph TD
-    Dev["Desarrollador"] --> MM["💬 Mattermost CE\n(Comunicación)"]
-    Dev --> GL["GitLab CE\n(Código / Issues / CI)"]
-    Dev --> NC[" Nextcloud Hub\n(Documentos)"]
-
+    Dev["Desarrollador"] --> MM["Mattermost CE (Comunicación)"]
+    Dev --> GL["GitLab CE (Código / Issues / CI)"]
+    Dev --> NC["Nextcloud Hub (Documentos)"]
     GL -->|"webhook notificaciones"| MM
-    GL -->|"dispara pipeline"| WP["Woodpecker CI\n(CI/CD)"]
-    WP -->|"publica imagen"| CR["GitLab Container\nRegistry"]
+    GL -->|"dispara pipeline"| WP["Woodpecker CI (CI/CD)"]
+    WP -->|"publica imagen"| CR["GitLab Container Registry"]
     WP -->|"notifica resultado"| MM
-
-    NC -->|"edición colaborativa"| CO[" Collabora Online\n(Editor de documentos)"]
-
-    GL -->|"SSO OAuth2"| KK["Keycloak\n(SSO / Identity)"]
+    NC -->|"edición colaborativa"| CO["Collabora Online (Editor de documentos)"]
+    GL -->|"SSO OAuth2"| KK["Keycloak (SSO / Identity)"]
     NC -->|"SSO SAML"| KK
     MM -->|"SSO LDAP/OAuth2"| KK
-
-    WP -->|"deploy"| DOCKER[" Docker / Kubernetes\n(Infraestructura)"]
+    WP -->|"deploy"| DOCKER["Docker / Kubernetes (Infraestructura)"]
     CR -->|"pull image"| DOCKER
-
-    style GL fill:#FC6D26,color:#fff
-    style MM fill:#0058CC,color:#fff
-    style NC fill:#0082C9,color:#fff
-    style WP fill:#4CAF50,color:#fff
-    style KK fill:#B71C1C,color:#fff
-    style CO fill:#1565C0,color:#fff
-    style CR fill:#FC6D26,color:#fff
-    style DOCKER fill:#2496ED,color:#fff
-    style Dev fill:#333,color:#fff
